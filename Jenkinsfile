@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'eu-north-1'
+        AWS_REGION = 'eu-west-1'
         ECR_REPO = 'my-repo'
         IMAGE_TAG = 'latest'
         SERVICE_NAME = 'llmops-medical-service'
@@ -52,9 +52,42 @@ pipeline {
 
                         sh """
                         SERVICE_ARN=\$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceArn" --output text --region ${AWS_REGION})
-                        echo "Found App Runner Service ARN: \$SERVICE_ARN"
 
-                        aws apprunner start-deployment --service-arn \$SERVICE_ARN --region ${AWS_REGION}
+                        if [ -z "\$SERVICE_ARN" ] || [ "\$SERVICE_ARN" = "None" ]; then
+                            echo "Service ${SERVICE_NAME} not found. Creating new App Runner service..."
+                            aws apprunner create-service \
+                                --service-name ${SERVICE_NAME} \
+                                --source-configuration '{
+                                    "ImageRepository": {
+                                        "ImageIdentifier": "${imageFullTag}",
+                                        "ImageRepositoryType": "ECR",
+                                        "ImageConfiguration": {
+                                            "Port": "5000"
+                                        }
+                                    },
+                                    "AutoDeploymentsEnabled": false
+                                }' \
+                                --instance-configuration '{
+                                    "Cpu": "1 vCPU",
+                                    "Memory": "2 GB"
+                                }' \
+                                --region ${AWS_REGION}
+                            echo "App Runner service created successfully"
+                        else
+                            echo "Found App Runner Service ARN: \$SERVICE_ARN"
+                            echo "Updating existing service..."
+                            aws apprunner update-service \
+                                --service-arn \$SERVICE_ARN \
+                                --source-configuration '{
+                                    "ImageRepository": {
+                                        "ImageIdentifier": "${imageFullTag}",
+                                        "ImageRepositoryType": "ECR"
+                                    },
+                                    "AutoDeploymentsEnabled": false
+                                }' \
+                                --region ${AWS_REGION}
+                            echo "Service updated successfully"
+                        fi
                         """
                     }
                 }
