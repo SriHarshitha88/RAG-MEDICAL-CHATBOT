@@ -25,10 +25,23 @@ pipeline {
                     script {
                         echo "Building Docker image locally..."
                         sh """
+                        # Check Jenkins environment
+                        echo "=== Jenkins Environment Info ==="
+                        echo "Current user: $(whoami)"
+                        echo "User groups: $(groups)"
+                        echo "Docker socket exists: $([ -e /var/run/docker.sock ] && echo 'YES' || echo 'NO')"
+                        echo "Docker socket permissions: $([ -e /var/run/docker.sock ] && ls -l /var/run/docker.sock || echo 'N/A')"
+                        echo "Docker command available: $(which docker || echo 'NOT FOUND')"
+                        echo "Running in Docker container: $([ -f /.dockerenv ] && echo 'YES' || echo 'NO')"
+                        echo ""
+
                         # Check if Docker is accessible
                         if ! docker info >/dev/null 2>&1; then
-                            echo "ERROR: Docker is not accessible. Please ensure Jenkins container is run with Docker socket mounted."
-                            echo "Run Jenkins with: docker run -v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins"
+                            echo "ERROR: Docker is not accessible."
+                            echo ""
+                            echo "Possible solutions:"
+                            echo "1. If Jenkins is in Docker: Restart with -v /var/run/docker.sock:/var/run/docker.sock"
+                            echo "2. If Jenkins is on host: Run 'sudo usermod -aG docker jenkins' and restart Jenkins"
                             exit 1
                         fi
                         docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
