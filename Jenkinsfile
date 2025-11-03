@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:24-cli'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         AWS_REGION = 'us-east-1'
@@ -30,6 +25,12 @@ pipeline {
                     script {
                         echo "Building Docker image locally..."
                         sh """
+                        # Check if Docker is accessible
+                        if ! docker info >/dev/null 2>&1; then
+                            echo "ERROR: Docker is not accessible. Please ensure Jenkins container is run with Docker socket mounted."
+                            echo "Run Jenkins with: docker run -v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins"
+                            exit 1
+                        fi
                         docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
                         trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
                         """
