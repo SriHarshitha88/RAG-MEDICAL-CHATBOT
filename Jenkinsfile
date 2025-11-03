@@ -25,8 +25,8 @@ pipeline {
                     script {
                         echo "Building Docker image locally..."
                         sh """
-                        docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
-                        trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
+                        sudo docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
+                        sudo trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
                         """
 
                         // AWS ECR push commented out for testing
