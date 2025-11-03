@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'eu-west-1'
+        ECR_REGION = 'eu-north-1'
+        APPRUNNER_REGION = 'eu-west-1'
         ECR_REPO = 'my-repo'
         IMAGE_TAG = 'latest'
         SERVICE_NAME = 'llmops-medical-service'
@@ -23,11 +24,11 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-token']]) {
                     script {
                         def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-                        def ecrUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
+                        def ecrUrl = "${accountId}.dkr.ecr.${env.ECR_REGION}.amazonaws.com/${env.ECR_REPO}"
                         def imageFullTag = "${ecrUrl}:${IMAGE_TAG}"
 
                         sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ecrUrl}
+                        aws ecr get-login-password --region ${ECR_REGION} | docker login --username AWS --password-stdin ${ecrUrl}
                         docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
                         trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
                         docker tag ${env.ECR_REPO}:${IMAGE_TAG} ${imageFullTag}
@@ -45,13 +46,14 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-token']]) {
                     script {
                         def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-                        def ecrUrl = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
+                        def ecrUrl = "${accountId}.dkr.ecr.${env.ECR_REGION}.amazonaws.com/${env.ECR_REPO}"
                         def imageFullTag = "${ecrUrl}:${IMAGE_TAG}"
 
-                        echo "Triggering deployment to AWS App Runner..."
+                        echo "Triggering deployment to AWS App Runner in ${env.APPRUNNER_REGION}..."
+                        echo "Using ECR image from ${env.ECR_REGION}: ${imageFullTag}"
 
                         sh """
-                        SERVICE_ARN=\$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceArn" --output text --region ${AWS_REGION})
+                        SERVICE_ARN=\$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='${SERVICE_NAME}'].ServiceArn" --output text --region ${env.APPRUNNER_REGION})
 
                         if [ -z "\$SERVICE_ARN" ] || [ "\$SERVICE_ARN" = "None" ]; then
                             echo "Service ${SERVICE_NAME} not found. Creating new App Runner service..."
@@ -71,7 +73,7 @@ pipeline {
                                     "Cpu": "1 vCPU",
                                     "Memory": "2 GB"
                                 }' \
-                                --region ${AWS_REGION}
+                                --region ${env.APPRUNNER_REGION}
                             echo "App Runner service created successfully"
                         else
                             echo "Found App Runner Service ARN: \$SERVICE_ARN"
@@ -85,7 +87,7 @@ pipeline {
                                     },
                                     "AutoDeploymentsEnabled": false
                                 }' \
-                                --region ${AWS_REGION}
+                                --region ${env.APPRUNNER_REGION}
                             echo "Service updated successfully"
                         fi
                         """
