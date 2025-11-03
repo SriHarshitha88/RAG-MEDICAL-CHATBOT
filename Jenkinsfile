@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         ECR_REGION = 'eu-north-1'
-        APPRUNNER_REGION = 'eu-west-1'
+        APPRUNNER_REGION = 'us-east-1'
         ECR_REPO = 'my-repo'
         IMAGE_TAG = 'latest'
         SERVICE_NAME = 'llmops-medical-service'
