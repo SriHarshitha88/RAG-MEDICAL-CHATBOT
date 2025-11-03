@@ -24,15 +24,15 @@ pipeline {
                 // withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-token']]) {
                     script {
                         echo "Building Docker image locally..."
-                        sh """
+                        sh '''
                         # Check Jenkins environment
                         echo "=== Jenkins Environment Info ==="
                         echo "Current user: $(whoami)"
                         echo "User groups: $(groups)"
-                        echo "Docker socket exists: $([ -e /var/run/docker.sock ] && echo 'YES' || echo 'NO')"
-                        echo "Docker socket permissions: $([ -e /var/run/docker.sock ] && ls -l /var/run/docker.sock || echo 'N/A')"
-                        echo "Docker command available: $(which docker || echo 'NOT FOUND')"
-                        echo "Running in Docker container: $([ -f /.dockerenv ] && echo 'YES' || echo 'NO')"
+                        echo "Docker socket exists: $([ -e /var/run/docker.sock ] && echo "YES" || echo "NO")"
+                        echo "Docker socket permissions: $([ -e /var/run/docker.sock ] && ls -l /var/run/docker.sock || echo "N/A")"
+                        echo "Docker command available: $(which docker || echo "NOT FOUND")"
+                        echo "Running in Docker container: $([ -f /.dockerenv ] && echo "YES" || echo "NO")"
                         echo ""
 
                         # Check if Docker is accessible
@@ -41,12 +41,12 @@ pipeline {
                             echo ""
                             echo "Possible solutions:"
                             echo "1. If Jenkins is in Docker: Restart with -v /var/run/docker.sock:/var/run/docker.sock"
-                            echo "2. If Jenkins is on host: Run 'sudo usermod -aG docker jenkins' and restart Jenkins"
+                            echo "2. If Jenkins is on host: Run \\"sudo usermod -aG docker jenkins\\" and restart Jenkins"
                             exit 1
                         fi
-                        docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
-                        trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
-                        """
+                        docker build -t ''' + env.ECR_REPO + ':' + IMAGE_TAG + ''' .
+                        trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ''' + env.ECR_REPO + ':' + IMAGE_TAG + ''' || true
+                        '''
 
                         // AWS ECR push commented out for testing
                         // def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
