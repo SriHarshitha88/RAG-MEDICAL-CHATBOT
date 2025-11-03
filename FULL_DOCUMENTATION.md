@@ -50,18 +50,62 @@ docker build -t jenkins-dind .
 
 ### 3. Run Jenkins Container
 
-```bash
+#### Option A: For Windows Users (Recommended)
+
+Create a batch file to avoid path issues:
+
+1. Create a new file `run_jenkins.bat` in the `custom_jenkins` folder:
+
+```batch
+@echo off
 docker run -d ^
   --name jenkins-dind ^
   --privileged ^
   -p 8080:8080 ^
   -p 50000:50000 ^
-  -v /var/run/docker.sock:/var/run/docker.sock ^
+  -v //var/run/docker.sock:/var/run/docker.sock ^
   -v jenkins_home:/var/jenkins_home ^
+  jenkins-dind
+
+echo.
+echo Container started. Checking status...
+docker ps -a | findstr jenkins-dind
+
+echo.
+echo To see logs, run: docker logs -f jenkins-dind
+echo.
+echo To access Jenkins, open http://localhost:8080 in your browser
+echo To get initial password, run: docker exec jenkins-dind cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+2. Run the batch file:
+```bash
+run_jenkins.bat
+```
+
+> ✅ If successful, you'll get a long alphanumeric container ID (e.g., `8c36840f499b36033970586c20b7aee9c9f55de033318803b3386628b85193c4`)
+
+#### Option B: For Linux/Mac Users
+
+```bash
+docker run -d \
+  --name jenkins-dind \
+  --privileged \
+  -p 8080:8080 \
+  -p 50000:50000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v jenkins_home:/var/jenkins_home \
   jenkins-dind
 ```
 
-> ✅ If successful, you’ll get a long alphanumeric container ID
+> ✅ If successful, you'll get a long alphanumeric container ID
+
+> ℹ️ **Note:** On Windows with Git Bash, the Docker socket volume mount needs to use `//var/run/docker.sock` format instead of `/var/run/docker.sock` to avoid path resolution errors.
+
+> ⚠️ **Troubleshooting:**
+> - If you get an "Access is denied" error, make sure Docker Desktop is running as administrator
+> - If the container doesn't start, check if port 8080 is already in use with `netstat -ano | findstr 8080`
+> - To remove an existing container with the same name: `docker rm -f jenkins-dind`
 
 ### 4. Check Jenkins Logs and Get Initial Password
 
