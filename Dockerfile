@@ -14,13 +14,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-## Copying all contents from local to container
+## Copy requirements first for better caching
+COPY requirements.txt .
+
+## Install Python dependencies with optimizations
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --no-deps -r requirements.txt || \
+    pip install --no-cache-dir -r requirements.txt
+
+## Copy the rest of the application
 COPY . .
 
-## Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -e .
+## Install the application
+RUN pip install --no-cache-dir -e .
 
 ## Expose only flask port
 EXPOSE 5000
