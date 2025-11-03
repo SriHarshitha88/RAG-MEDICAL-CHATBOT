@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'docker:24-cli'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         AWS_REGION = 'us-east-1'
@@ -25,8 +30,8 @@ pipeline {
                     script {
                         echo "Building Docker image locally..."
                         sh """
-                        sudo docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
-                        sudo trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
+                        docker build -t ${env.ECR_REPO}:${IMAGE_TAG} .
+                        trivy image --severity HIGH,CRITICAL --format json -o trivy-report.json ${env.ECR_REPO}:${IMAGE_TAG} || true
                         """
 
                         // AWS ECR push commented out for testing
